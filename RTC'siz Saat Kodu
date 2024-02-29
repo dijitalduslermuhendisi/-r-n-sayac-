@@ -1,0 +1,114 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);  // I2C adresi ve ekran boyutu
+
+unsigned long previousMillis = 0;  // Önceki milis süresi
+const long interval = 1000;  // Bir saniye
+
+int seconds = 52;
+int minutes = 52;
+int hours = 14;
+int day = 24;
+int month = 2;
+int year = 2024;  // Başlangıç yılı
+
+const int buttonPinSecond = 2;  // Saniye butonu
+const int buttonPinMinute = 3;  // Dakika butonu
+
+int buttonStateSecond = HIGH;  // Başlangıç durumu yüksek (pull-up bağlantı)
+int buttonStateMinute = HIGH;  // Başlangıç durumu yüksek (pull-up bağlantı)
+
+int lastButtonStateSecond = HIGH;
+int lastButtonStateMinute = HIGH;
+
+void setup() {
+  lcd.begin(16, 2);  // Ekran başlat
+  lcd.backlight();   // Ekran arka plan ışığını aç
+
+  pinMode(buttonPinSecond, INPUT_PULLUP);
+  pinMode(buttonPinMinute, INPUT_PULLUP);
+}
+
+void loop() {
+  unsigned long currentMillis = millis();  // Şu anki milis süresi
+
+  // Belirli bir aralıkta zamanı güncelle
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;  // Önceki milis süresini güncelle
+
+    // Zamanı güncelle
+    seconds++;
+    if (seconds == 60) {
+      seconds = 0;
+      minutes++;
+      if (minutes == 60) {
+        minutes = 0;
+        hours++;
+        if (hours == 24) {
+          hours = 0;
+          day++;
+          if (day > 31) {
+            day = 1;
+            month++;
+            if (month > 12) {
+              month = 1;
+              year++;
+            }
+          }
+        }
+      }
+    }
+
+    // Saniye butonuna basıldığında saniye değerini artır
+    buttonStateSecond = digitalRead(buttonPinSecond);
+    if (buttonStateSecond == LOW && lastButtonStateSecond == HIGH) {
+      delay(250); // Debouncing
+      seconds++;
+      if (seconds == 60) {
+        seconds = 0;
+      }
+    }
+    lastButtonStateSecond = buttonStateSecond;
+
+    // Dakika butonuna basıldığında dakika değerini artır
+    buttonStateMinute = digitalRead(buttonPinMinute);
+    if (buttonStateMinute == LOW && lastButtonStateMinute == HIGH) {
+      delay(250); // Debouncing
+      minutes++;
+      if (minutes == 60) {
+        minutes = 0;
+      }
+    }
+    lastButtonStateMinute = buttonStateMinute;
+
+    // LCD'ye zaman ve tarih bilgisini yazdır
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Saat: ");
+    lcd.print(hours < 10 ? "0" : "");
+    lcd.print(hours);
+    lcd.print(":");
+    lcd.print(minutes < 10 ? "0" : "");
+    lcd.print(minutes);
+    lcd.print(":");
+    lcd.print(seconds < 10 ? "0" : "");
+    lcd.print(seconds);
+
+    // LCD'ye tarih bilgisini yazdır
+    lcd.setCursor(0, 1);
+    lcd.print("Tarih: ");
+    lcd.print(day < 10 ? "0" : "");
+    lcd.print(day);
+    lcd.print("/");
+    lcd.print(month < 10 ? "0" : "");
+    lcd.print(month);
+    lcd.print("/");
+    lcd.print(year);
+
+    // Eğer tarih bilgisi ekrana sığmazsa geri kalan kısmını temizle
+    if (year > 999) {
+      lcd.print("    "); // 4 boşluk
+    }
+  }
+}
